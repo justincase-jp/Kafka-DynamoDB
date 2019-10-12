@@ -45,23 +45,31 @@ class DynamoDbStore(
   }
 
   override
-  fun putAll(entries: List<KeyValue<Bytes, ByteArray>>) {
-    delegate.batchWriteItem { request ->
-      request.requestItems(mapOf(table to entries.map {
-        WriteRequest
-            .builder()
-            .putRequest(PutRequest
-                .builder()
-                .item(mapOf(
-                    hashKeyColumn to b(it.key.encode()),
-                    sortKeyColumn to s(name),
-                    valueColumn to bOrNul(it.value)
-                ))
-                .build())
-            .build()
-      }))
-    }
-  }
+  fun putAll(entries: List<KeyValue<Bytes, ByteArray>>) =
+      entries
+          .asSequence()
+          .chunked(25) // Hard limit per request
+          .forEach { chunk ->
+            delegate.batchWriteItem { request ->
+              request.requestItems(mapOf(
+                  table to chunk
+                      .associateBy({ it.key }) { it.value } // Deduplication is mandatory
+                      .map {
+                        WriteRequest
+                            .builder()
+                            .putRequest(PutRequest
+                                .builder()
+                                .item(mapOf(
+                                    hashKeyColumn to b(it.key.encode()),
+                                    sortKeyColumn to s(name),
+                                    valueColumn to bOrNul(it.value)
+                                ))
+                                .build())
+                            .build()
+                      }
+              ))
+            }
+          }
 
   override
   tailrec fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
