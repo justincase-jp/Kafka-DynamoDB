@@ -20,15 +20,22 @@ private fun Bytes.encode() = get().let { it.copyInto(ByteArray(1 + it.size), 1) 
 private val EMPTY_BYTE_ARRAY = ByteArray(0)
 
 
-class DynamoDbStore(
+class DynamoDbStore private constructor (
     private val delegate: DynamoDbClient,
+    private val storeName: String,
     private val table: String,
     private val hashKeyColumn: String,
     private val sortKeyColumn: String,
-    private val valueColumn: String,
-    private val name: String
+    private val valueColumn: String
 ) : AbstractKeyValueStore<Bytes, ByteArray> {
-  override fun name() = name
+  constructor (
+      delegate: DynamoDbClient, storeName: String, tableSettings: DynamoDbTableSettings
+  ) : this(
+      delegate, storeName,
+      tableSettings.table, tableSettings.hashKeyColumn, tableSettings.sortKeyColumn, tableSettings.valueColumn
+  )
+
+  override fun name() = storeName
   override fun persistent() = true
   override fun approximateNumEntries() = Long.MAX_VALUE
 
@@ -38,7 +45,7 @@ class DynamoDbStore(
       it.tableName(table)
       it.item(mapOf(
           hashKeyColumn to b(key.encode()),
-          sortKeyColumn to s(name),
+          sortKeyColumn to s(storeName),
           valueColumn to bOrNul(value)
       ))
     }
@@ -61,7 +68,7 @@ class DynamoDbStore(
                                 .builder()
                                 .item(mapOf(
                                     hashKeyColumn to b(it.key.encode()),
-                                    sortKeyColumn to s(name),
+                                    sortKeyColumn to s(storeName),
                                     valueColumn to bOrNul(it.value)
                                 ))
                                 .build())
@@ -79,7 +86,7 @@ class DynamoDbStore(
             it.tableName(table)
             it.item(mapOf(
                 hashKeyColumn to b(key.encode()),
-                sortKeyColumn to s(name),
+                sortKeyColumn to s(storeName),
                 valueColumn to bOrNul(value)
             ))
             it.conditionExpression("attribute_not_exists(#s)")
@@ -102,7 +109,7 @@ class DynamoDbStore(
             it.tableName(table)
             it.key(mapOf(
                 hashKeyColumn to b(key.encode()),
-                sortKeyColumn to s(name)
+                sortKeyColumn to s(storeName)
             ))
           }
           .item()[valueColumn]
@@ -117,7 +124,7 @@ class DynamoDbStore(
             it.tableName(table)
             it.key(mapOf(
                 hashKeyColumn to b(key.encode()),
-                sortKeyColumn to s(name)
+                sortKeyColumn to s(storeName)
             ))
             it.returnValues(ALL_OLD)
           }

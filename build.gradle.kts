@@ -23,7 +23,8 @@ repositories {
   jcenter()
 }
 dependencies {
-  implementation(kotlin("stdlib"))
+  implementation(kotlin("stdlib-jdk7"))
+  implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", "1.3.2")
 
   api("org.apache.kafka", "kafka-streams", "2.3.0")
   implementation("software.amazon.awssdk", "dynamodb", "2.9.17")

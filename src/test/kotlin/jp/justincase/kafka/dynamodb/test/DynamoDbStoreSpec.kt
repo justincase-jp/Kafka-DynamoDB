@@ -4,38 +4,29 @@ import io.kotlintest.properties.Gen
 import io.kotlintest.properties.assertAll
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.WordSpec
-import jp.justincase.kafka.dynamodb.DynamoDbStore
+import jp.justincase.kafka.dynamodb.*
+import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
+import kotlinx.coroutines.runBlocking
 import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KeyValue
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient
-import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition
-import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement
-import software.amazon.awssdk.services.dynamodb.model.KeyType
-import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType
 import java.net.URI
 import java.util.*
 
 class DynamoDbStoreSpec : WordSpec({
-  val client = DynamoDbClient.builder().endpointOverride(URI("http://localhost:8000")).build()
+  val clientSettings = DynamoDbClientSettings(URI("http://localhost:8000"))
+  val client = clientSettings.createSynchronousClient()
   val uuidString = Gen.uuid().map(UUID::toString)
 
-  val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, h, s, v, n ->
-    client.createTable { table ->
-      table.provisionedThroughput {
-        it.readCapacityUnits(1)
-        it.writeCapacityUnits(1)
-      }
-      table.keySchema(
-          KeySchemaElement.builder().attributeName(h).keyType(KeyType.HASH).build(),
-          KeySchemaElement.builder().attributeName(s).keyType(KeyType.RANGE).build()
+  val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, n, h, s, v ->
+    val tableSettings = DynamoDbTableSettings(t, h, s, v)
+
+    runBlocking {
+      clientSettings.createTable(
+          DynamoDbTableThroughputSettings(1, 1),
+          tableSettings
       )
-      table.attributeDefinitions(
-          AttributeDefinition.builder().attributeName(h).attributeType(ScalarAttributeType.B).build(),
-          AttributeDefinition.builder().attributeName(s).attributeType(ScalarAttributeType.S).build()
-      )
-      table.tableName(t)
     }
-    DynamoDbStore(client, t, h, s, v, n)
+    DynamoDbStore(client, n, tableSettings)
   }
 
   val byteArrayGen = Gen.list(Gen.byte()).map { it.toByteArray() }
