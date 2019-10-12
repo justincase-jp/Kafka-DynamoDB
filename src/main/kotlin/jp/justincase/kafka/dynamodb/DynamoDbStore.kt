@@ -10,8 +10,14 @@ import software.amazon.awssdk.services.dynamodb.model.ReturnValue.ALL_OLD
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest
 
 private fun s(string: String) = builder().s(string).build()
-private fun b(bytes: Bytes) = b(bytes.get())
 private fun b(bytes: ByteArray) = builder().b(SdkBytes.fromByteArray(bytes)).build()
+
+// Workaround for DynamoDB not supporting empty binary
+private fun bOrNul(bytes: ByteArray) = if (bytes.isNotEmpty()) b(bytes) else builder().nul(true).build()
+private fun Bytes.encode() = get().let { it.copyInto(ByteArray(1 + it.size), 1) }
+
+private val EMPTY_BYTE_ARRAY = ByteArray(0)
+
 
 class DynamoDbStore(
     private val delegate: DynamoDbClient,
@@ -30,9 +36,9 @@ class DynamoDbStore(
     delegate.putItem {
       it.tableName(table)
       it.item(mapOf(
-          hashKeyColumn to b(key),
+          hashKeyColumn to b(key.encode()),
           sortKeyColumn to s(name),
-          valueColumn to b(value)
+          valueColumn to bOrNul(value)
       ))
     }
   }
@@ -46,9 +52,9 @@ class DynamoDbStore(
             .putRequest(PutRequest
                 .builder()
                 .item(mapOf(
-                    hashKeyColumn to b(it.key),
+                    hashKeyColumn to b(it.key.encode()),
                     sortKeyColumn to s(name),
-                    valueColumn to b(it.value)
+                    valueColumn to bOrNul(it.value)
                 ))
                 .build())
             .build()
@@ -62,16 +68,17 @@ class DynamoDbStore(
           .putItem {
             it.tableName(table)
             it.item(mapOf(
-                hashKeyColumn to b(key),
+                hashKeyColumn to b(key.encode()),
                 sortKeyColumn to s(name),
-                valueColumn to b(value)
+                valueColumn to bOrNul(value)
             ))
             it.conditionExpression("attribute_not_exists($sortKeyColumn)")
             it.returnValues(ALL_OLD)
           }
           .attributes()[valueColumn]
-          ?.b()
-          ?.asByteArray()
+          ?.let {
+            it.b()?.asByteArray() ?: EMPTY_BYTE_ARRAY
+          }
 
   override
   fun get(key: Bytes): ByteArray? =
@@ -79,13 +86,14 @@ class DynamoDbStore(
           .getItem {
             it.tableName(table)
             it.key(mapOf(
-                hashKeyColumn to b(key),
+                hashKeyColumn to b(key.encode()),
                 sortKeyColumn to s(name)
             ))
           }
           .item()[valueColumn]
-          ?.b()
-          ?.asByteArray()
+          ?.let {
+            it.b()?.asByteArray() ?: EMPTY_BYTE_ARRAY
+          }
 
   override
   fun delete(key: Bytes): ByteArray? =
@@ -93,12 +101,13 @@ class DynamoDbStore(
           .deleteItem {
             it.tableName(table)
             it.key(mapOf(
-                hashKeyColumn to b(key),
+                hashKeyColumn to b(key.encode()),
                 sortKeyColumn to s(name)
             ))
             it.returnValues(ALL_OLD)
           }
           .attributes()[valueColumn]
-          ?.b()
-          ?.asByteArray()
+          ?.let {
+            it.b()?.asByteArray() ?: EMPTY_BYTE_ARRAY
+          }
 }
