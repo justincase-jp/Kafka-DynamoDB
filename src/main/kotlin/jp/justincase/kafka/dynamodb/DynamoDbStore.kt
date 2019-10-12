@@ -5,6 +5,7 @@ import org.apache.kafka.streams.KeyValue
 import software.amazon.awssdk.core.SdkBytes
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException
 import software.amazon.awssdk.services.dynamodb.model.PutRequest
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue.ALL_OLD
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest
@@ -63,22 +64,28 @@ class DynamoDbStore(
   }
 
   override
-  fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
-      delegate
-          .putItem {
+  tailrec fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
+      when (val v = get(key)) {
+        null -> when (try {
+          delegate.putItem {
             it.tableName(table)
             it.item(mapOf(
                 hashKeyColumn to b(key.encode()),
                 sortKeyColumn to s(name),
                 valueColumn to bOrNul(value)
             ))
-            it.conditionExpression("attribute_not_exists($sortKeyColumn)")
-            it.returnValues(ALL_OLD)
+            it.conditionExpression("attribute_not_exists(#s)")
+            it.expressionAttributeNames(mapOf("#s" to sortKeyColumn))
           }
-          .attributes()[valueColumn]
-          ?.let {
-            it.b()?.asByteArray() ?: EMPTY_BYTE_ARRAY
-          }
+          null
+        } catch (_: ConditionalCheckFailedException) {
+        }) {
+          // tailrec does not work with try-catch directly
+          null -> null
+          else -> putIfAbsent(key, value)
+        }
+        else -> v
+      }
 
   override
   fun get(key: Bytes): ByteArray? =
