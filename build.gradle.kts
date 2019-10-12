@@ -13,6 +13,10 @@ tasks {
       kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
   }
+
+  named<Test>("test") {
+    useJUnitPlatform()
+  }
 }
 
 repositories {
@@ -23,4 +27,6 @@ dependencies {
 
   api("org.apache.kafka", "kafka-streams", "2.3.0")
   implementation("software.amazon.awssdk", "dynamodb", "2.9.17")
+
+  testImplementation("io.kotlintest", "kotlintest-runner-junit5", "3.4.2")
 }
