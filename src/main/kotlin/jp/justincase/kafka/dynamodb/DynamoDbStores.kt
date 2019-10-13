@@ -55,7 +55,7 @@ fun DynamoDbClientSettings.keyValueStoreBuilderSupplier(
               override fun build() = Stores
                   .keyValueStoreBuilder(
                       object : KeyValueBytesStoreSupplier {
-                        override fun get() = LateInitializedKeyValueStore {
+                        override fun get() = LateInitializedKeyValueStore(true, name) {
                           createTable.value
                           DynamoDbStore.open(client, name, tableSettings)
                         }
