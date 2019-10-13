@@ -1,41 +1,39 @@
-@file:Suppress("ReplaceNegatedIsEmptyWithIsNotEmpty")
 package jp.justincase.kafka.dynamodb
 
-import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.LazyThreadSafetyMode.SYNCHRONIZED
 
 class SharedReference<T : AutoCloseable>(
     private val factory: () -> T
 ) {
-  class Token
-  private val internalFactory get() = Collections.synchronizedSet<Token>(mutableSetOf()) to lazy(factory)
+  private val internalFactory get() = AtomicInteger() to lazy(SYNCHRONIZED, factory)
   private val instance = AtomicReference(internalFactory)
 
-  tailrec fun open(): Pair<Token, T> {
-    val token = Token()
+  tailrec fun open(): Pair<Lazy<Unit>, T> {
     val p = instance.get()
 
     return if (p == null) {
       open()
     } else {
-      p.first += token
+      p.first.getAndIncrement()
 
       if (p !== instance.get()) {
         open()
       } else {
-        token to p.second.value
+        lazy(SYNCHRONIZED, ::close) to p.second.value
       }
     }
   }
 
-  fun close(token: Token) {
+  private
+  fun close() {
     val p = instance.get()
 
     if (p != null
-        && p.first.remove(token)
-        && p.first.isEmpty()
+        && p.first.decrementAndGet() == 0
         && instance.getAndSet(null) === p) {
-      if (!p.first.isEmpty()) {
+      if (p.first.get() > 0) {
         instance.set(p)
       } else {
         instance.set(internalFactory)
