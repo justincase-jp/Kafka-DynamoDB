@@ -6,26 +6,23 @@ import io.kotlintest.shouldBe
 import io.kotlintest.specs.WordSpec
 import jp.justincase.kafka.dynamodb.*
 import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
-import kotlinx.coroutines.runBlocking
+import jp.justincase.kafka.dynamodb.auxiliary.createTableSynchronously
 import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KeyValue
 import java.net.URI
 import java.util.*
 
 class DynamoDbStoreSpec : WordSpec({
-  val clientSettings = DynamoDbClientSettings(URI("http://localhost:8000"))
-  val client = SharedReference(clientSettings::createSynchronousClient)
+  val client = SharedReference(DynamoDbClientSettings(URI("http://localhost:8000"))::createSynchronousClient)
   val uuidString = Gen.uuid().map(UUID::toString)
 
   val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, n, h, s, v ->
     val tableSettings = DynamoDbTableSettings(t, h, s, v)
 
-    runBlocking {
-      clientSettings.createTable(
-          DynamoDbTableThroughputSettings(1, 1),
-          tableSettings
-      )
-    }
+    client.createTableSynchronously(
+        DynamoDbTableThroughputSettings(1, 1),
+        tableSettings
+    )
     DynamoDbStore.open(client, n, tableSettings)
   }
 

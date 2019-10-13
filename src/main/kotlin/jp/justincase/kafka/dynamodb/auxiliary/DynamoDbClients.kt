@@ -2,17 +2,62 @@
 package jp.justincase.kafka.dynamodb.auxiliary
 
 import jp.justincase.kafka.dynamodb.DynamoDbClientSettings
-import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
+import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
+import jp.justincase.kafka.dynamodb.DynamoDbTableThroughputSettings
+import jp.justincase.kafka.dynamodb.SharedReference
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
-
-fun DynamoDbClientSettings.createAsynchronousClient(): DynamoDbAsyncClient =
-    DynamoDbAsyncClient
-        .builder()
-        .endpointOverride(endpointOverride)
-        .build()
+import software.amazon.awssdk.services.dynamodb.model.*
+import software.amazon.awssdk.services.dynamodb.model.KeyType.HASH
+import software.amazon.awssdk.services.dynamodb.model.KeyType.RANGE
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType.B
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType.S
+import java.io.Closeable
 
 fun DynamoDbClientSettings.createSynchronousClient(): DynamoDbClient =
     DynamoDbClient
         .builder()
         .endpointOverride(endpointOverride)
         .build()
+
+
+fun SharedReference<DynamoDbClient>.createTableSynchronously(
+    tableThroughputSettings: DynamoDbTableThroughputSettings,
+    tableSettings: DynamoDbTableSettings
+): Unit =
+    open().toCloseableReference().use { client ->
+      try {
+        client().createTable { table ->
+          tableThroughputSettings.apply {
+            table.provisionedThroughput {
+              it.readCapacityUnits(readCapacityUnits)
+              it.writeCapacityUnits(writeCapacityUnits)
+            }
+          }
+          tableSettings.apply {
+            table.keySchema(
+                KeySchemaElement.builder().attributeName(hashKeyColumn).keyType(HASH).build(),
+                KeySchemaElement.builder().attributeName(sortKeyColumn).keyType(RANGE).build()
+            )
+            table.attributeDefinitions(
+                AttributeDefinition.builder().attributeName(hashKeyColumn).attributeType(B).build(),
+                AttributeDefinition.builder().attributeName(sortKeyColumn).attributeType(S).build()
+            )
+          }
+          table.tableName(tableSettings.table)
+        }
+        Unit
+      } catch (_: ResourceInUseException) {
+        // Table already exists
+      }
+    }
+
+
+private
+interface CloseableReference<T> : Closeable, () -> T
+
+private
+fun <T> Pair<Lazy<Unit>, T>.toCloseableReference() = object : CloseableReference<T> {
+  override fun invoke() = second
+
+  override fun close() = first.value
+}

@@ -42,9 +42,10 @@ class DynamoDbStore private constructor (
     @JvmStatic
     fun keyValueStoreBuilderSupplier(
         clientSettings: DynamoDbClientSettings,
+        tableThroughputSettings: DynamoDbTableThroughputSettings,
         tableSettings: DynamoDbTableSettings
     ): KeyValueStoreBuilderSupplier =
-        clientSettings.keyValueStoreBuilderSupplier(tableSettings)
+        clientSettings.keyValueStoreBuilderSupplier(tableThroughputSettings, tableSettings)
   }
 
   override fun isOpen() = !handle.isInitialized()
