@@ -4,6 +4,8 @@ package jp.justincase.kafka.dynamodb.auxiliary
 import jp.justincase.kafka.dynamodb.DynamoDbClientSettings
 import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
 import jp.justincase.kafka.dynamodb.SharedReference
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.regions.Region.US_WEST_2
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.*
 import software.amazon.awssdk.services.dynamodb.model.BillingMode.PAY_PER_REQUEST
@@ -16,7 +18,16 @@ import java.io.Closeable
 fun DynamoDbClientSettings.createSynchronousClient(): DynamoDbClient =
     DynamoDbClient
         .builder()
-        .endpointOverride(endpointOverride)
+        .apply {
+          endpointOverride(endpointOverride)
+
+          // Derive region from the endpoint URI (or else use Oregon)
+          Regex("""dynamodb\.(.*)\.amazonaws\.com""")
+              .matchEntire(endpointOverride.host)
+              ?.destructured
+              ?.let { (region) -> region(Region.of(region)) }
+              ?: region(US_WEST_2)
+        }
         .build()
 
 
