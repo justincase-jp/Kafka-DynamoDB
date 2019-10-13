@@ -1,4 +1,4 @@
-@file:JvmName("DynamoDbStoreSettings")
+@file:JvmName("DynamoDbStores")
 package jp.justincase.kafka.dynamodb
 
 import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
@@ -9,6 +9,26 @@ import org.apache.kafka.streams.state.KeyValueStore
 import org.apache.kafka.streams.state.Stores
 import java.net.URI
 import kotlin.LazyThreadSafetyMode.PUBLICATION
+
+data class DynamoDbStoreSettings(
+    val endpointOverride: URI,
+    val readCapacityUnits: Long,
+    val writeCapacityUnits: Long,
+    val table: String,
+    val hashKeyColumn: String,
+    val sortKeyColumn: String,
+    val valueColumn: String
+)
+
+fun DynamoDbStoreSettings.toClientSettings() =
+    DynamoDbClientSettings(endpointOverride)
+
+fun DynamoDbStoreSettings.toTableThroughputSettings() =
+    DynamoDbTableThroughputSettings(readCapacityUnits, writeCapacityUnits)
+
+fun DynamoDbStoreSettings.toTableSettings() =
+    DynamoDbTableSettings(table, hashKeyColumn, sortKeyColumn, valueColumn)
+
 
 data class DynamoDbClientSettings(
     val endpointOverride: URI
