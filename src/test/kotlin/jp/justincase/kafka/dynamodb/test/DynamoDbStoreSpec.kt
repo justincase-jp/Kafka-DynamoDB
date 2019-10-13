@@ -14,7 +14,7 @@ import java.util.*
 
 class DynamoDbStoreSpec : WordSpec({
   val clientSettings = DynamoDbClientSettings(URI("http://localhost:8000"))
-  val client = clientSettings.createSynchronousClient()
+  val client = SharedReference(clientSettings::createSynchronousClient)
   val uuidString = Gen.uuid().map(UUID::toString)
 
   val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, n, h, s, v ->
@@ -26,7 +26,7 @@ class DynamoDbStoreSpec : WordSpec({
           tableSettings
       )
     }
-    DynamoDbStore(client, n, tableSettings)
+    DynamoDbStore.open(client, n, tableSettings)
   }
 
   val byteArrayGen = Gen.list(Gen.byte()).map { it.toByteArray() }

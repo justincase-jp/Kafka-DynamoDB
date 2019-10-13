@@ -21,6 +21,7 @@ private val EMPTY_BYTE_ARRAY = ByteArray(0)
 
 
 class DynamoDbStore private constructor (
+    private val handle: Lazy<Unit>,
     private val delegate: DynamoDbClient,
     private val storeName: String,
     private val table: String,
@@ -28,13 +29,19 @@ class DynamoDbStore private constructor (
     private val sortKeyColumn: String,
     private val valueColumn: String
 ) : AbstractKeyValueStore<Bytes, ByteArray> {
-  constructor (
-      delegate: DynamoDbClient, storeName: String, tableSettings: DynamoDbTableSettings
-  ) : this(
-      delegate, storeName,
-      tableSettings.table, tableSettings.hashKeyColumn, tableSettings.sortKeyColumn, tableSettings.valueColumn
-  )
+  companion object {
+    @JvmStatic
+    fun open(client: SharedReference<DynamoDbClient>, storeName: String, tableSettings: DynamoDbTableSettings) =
+        client.open().let { (handle, delegate) ->
+          DynamoDbStore(
+              handle, delegate, storeName,
+              tableSettings.table, tableSettings.hashKeyColumn, tableSettings.sortKeyColumn, tableSettings.valueColumn
+          )
+        }
+  }
 
+  override fun isOpen() = !handle.isInitialized()
+  override fun close() = handle.value
   override fun name() = storeName
   override fun persistent() = true
   override fun approximateNumEntries() = Long.MAX_VALUE

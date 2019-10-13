@@ -16,8 +16,4 @@ interface AbstractKeyValueStore<K, V> : KeyValueStore<K, V> {
 
   override fun all(): KeyValueIterator<K, V> =
       throw UnsupportedOperationException("$this.all()")
-
-  override fun isOpen() = true
-
-  override fun close() = Unit
 }
