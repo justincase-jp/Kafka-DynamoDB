@@ -10,6 +10,11 @@ class LateInitializedKeyValueStore<K, V>(
     private val name: String,
     private val factory: () -> KeyValueStore<K, V>
 ) : AbstractKeyValueStore<K, V> {
+  private val delegateOrNull get() = try {
+    delegate
+  } catch (_: UninitializedPropertyAccessException) {
+    null
+  }
   private lateinit var delegate: KeyValueStore<K, V>
 
   override fun init(context: ProcessorContext, root: StateStore) {
@@ -18,11 +23,10 @@ class LateInitializedKeyValueStore<K, V>(
   }
   override fun persistent() = persistence
   override fun name() = name
+  override fun isOpen() = delegateOrNull?.isOpen ?: false
+  override fun close() = delegateOrNull?.close() ?: Unit
 
-  override fun isOpen() = delegate.isOpen
-  override fun close() = delegate.close()
   override fun approximateNumEntries() = delegate.approximateNumEntries()
-
   override fun put(key: K, value: V) = delegate.put(key, value)
   override fun putAll(entries: List<KeyValue<K, V>>) = delegate.putAll(entries)
   override fun putIfAbsent(key: K, value: V): V? = delegate.putIfAbsent(key, value)
