@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
 import software.amazon.awssdk.services.dynamodb.model.PutRequest
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue.ALL_OLD
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest
+import java.net.URI
 
 private fun s(string: String) = builder().s(string).build()
 private fun b(bytes: ByteArray) = builder().b(SdkBytes.fromByteArray(bytes)).build()
@@ -40,10 +41,16 @@ class DynamoDbStore private constructor (
         }
 
     @JvmStatic
-    fun keyValueStoreBuilderSupplier(settings: DynamoDbStoreSettings): KeyValueStoreBuilderSupplier =
-        settings.run {
-          toClientSettings().keyValueStoreBuilderSupplier(toTableSettings())
-        }
+    fun keyValueStoreBuilderSupplier(
+        endpointOverride: URI,
+        table: String,
+        hashKeyColumn: String = "key",
+        sortKeyColumn: String = "type",
+        valueColumn: String = "value"
+    ): KeyValueStoreBuilderSupplier =
+        DynamoDbClientSettings(endpointOverride).keyValueStoreBuilderSupplier(DynamoDbTableSettings(
+            table, hashKeyColumn, sortKeyColumn, valueColumn
+        ))
   }
 
   override fun isOpen() = !handle.isInitialized()

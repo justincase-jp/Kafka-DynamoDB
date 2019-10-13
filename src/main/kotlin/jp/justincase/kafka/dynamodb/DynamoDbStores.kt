@@ -10,13 +10,21 @@ import org.apache.kafka.streams.state.Stores
 import java.net.URI
 import kotlin.LazyThreadSafetyMode.PUBLICATION
 
-data class DynamoDbStoreSettings(
-    val endpointOverride: URI,
-    val table: String,
-    val hashKeyColumn: String,
-    val sortKeyColumn: String,
-    val valueColumn: String
-)
+interface DynamoDbStoreSettings {
+  val endpointOverride: URI
+  val table: String
+  val hashKeyColumn: String
+  val sortKeyColumn: String
+  val valueColumn: String
+
+  data class Value(
+      override val endpointOverride: URI,
+      override val table: String,
+      override val hashKeyColumn: String = "key",
+      override val sortKeyColumn: String = "type",
+      override val valueColumn: String = "value"
+  ) : DynamoDbStoreSettings
+}
 
 fun DynamoDbStoreSettings.toClientSettings() =
     DynamoDbClientSettings(endpointOverride)
@@ -37,8 +45,9 @@ data class DynamoDbTableSettings(
 )
 
 
-@JvmSynthetic
-internal
+fun DynamoDbStoreSettings.keyValueStoreBuilderSupplier() =
+    toClientSettings().keyValueStoreBuilderSupplier(toTableSettings())
+
 fun DynamoDbClientSettings.keyValueStoreBuilderSupplier(
     tableSettings: DynamoDbTableSettings
 ): KeyValueStoreBuilderSupplier =
