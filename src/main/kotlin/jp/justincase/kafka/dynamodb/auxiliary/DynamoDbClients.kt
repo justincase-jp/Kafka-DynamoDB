@@ -3,10 +3,10 @@ package jp.justincase.kafka.dynamodb.auxiliary
 
 import jp.justincase.kafka.dynamodb.DynamoDbClientSettings
 import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
-import jp.justincase.kafka.dynamodb.DynamoDbTableThroughputSettings
 import jp.justincase.kafka.dynamodb.SharedReference
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.*
+import software.amazon.awssdk.services.dynamodb.model.BillingMode.PAY_PER_REQUEST
 import software.amazon.awssdk.services.dynamodb.model.KeyType.HASH
 import software.amazon.awssdk.services.dynamodb.model.KeyType.RANGE
 import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType.B
@@ -21,18 +21,11 @@ fun DynamoDbClientSettings.createSynchronousClient(): DynamoDbClient =
 
 
 fun SharedReference<DynamoDbClient>.createTableSynchronously(
-    tableThroughputSettings: DynamoDbTableThroughputSettings,
     tableSettings: DynamoDbTableSettings
 ): Unit =
     open().toCloseableReference().use { client ->
       try {
         client().createTable { table ->
-          tableThroughputSettings.apply {
-            table.provisionedThroughput {
-              it.readCapacityUnits(readCapacityUnits)
-              it.writeCapacityUnits(writeCapacityUnits)
-            }
-          }
           tableSettings.apply {
             table.keySchema(
                 KeySchemaElement.builder().attributeName(hashKeyColumn).keyType(HASH).build(),
@@ -44,6 +37,7 @@ fun SharedReference<DynamoDbClient>.createTableSynchronously(
             )
           }
           table.tableName(tableSettings.table)
+          table.billingMode(PAY_PER_REQUEST)
         }
         Unit
       } catch (_: ResourceInUseException) {

@@ -19,10 +19,7 @@ class DynamoDbStoreSpec : WordSpec({
   val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, n, h, s, v ->
     val tableSettings = DynamoDbTableSettings(t, h, s, v)
 
-    client.createTableSynchronously(
-        DynamoDbTableThroughputSettings(1, 1),
-        tableSettings
-    )
+    client.createTableSynchronously(tableSettings)
     DynamoDbStore.open(client, n, tableSettings)
   }
 

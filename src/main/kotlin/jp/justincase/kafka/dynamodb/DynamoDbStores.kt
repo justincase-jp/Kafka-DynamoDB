@@ -12,8 +12,6 @@ import kotlin.LazyThreadSafetyMode.PUBLICATION
 
 data class DynamoDbStoreSettings(
     val endpointOverride: URI,
-    val readCapacityUnits: Long,
-    val writeCapacityUnits: Long,
     val table: String,
     val hashKeyColumn: String,
     val sortKeyColumn: String,
@@ -23,20 +21,12 @@ data class DynamoDbStoreSettings(
 fun DynamoDbStoreSettings.toClientSettings() =
     DynamoDbClientSettings(endpointOverride)
 
-fun DynamoDbStoreSettings.toTableThroughputSettings() =
-    DynamoDbTableThroughputSettings(readCapacityUnits, writeCapacityUnits)
-
 fun DynamoDbStoreSettings.toTableSettings() =
     DynamoDbTableSettings(table, hashKeyColumn, sortKeyColumn, valueColumn)
 
 
 data class DynamoDbClientSettings(
     val endpointOverride: URI
-)
-
-data class DynamoDbTableThroughputSettings(
-    val readCapacityUnits: Long,
-    val writeCapacityUnits: Long
 )
 
 data class DynamoDbTableSettings(
@@ -50,7 +40,6 @@ data class DynamoDbTableSettings(
 @JvmSynthetic
 internal
 fun DynamoDbClientSettings.keyValueStoreBuilderSupplier(
-    tableThroughputSettings: DynamoDbTableThroughputSettings,
     tableSettings: DynamoDbTableSettings
 ): KeyValueStoreBuilderSupplier =
     SharedReference(::createSynchronousClient).let { client ->

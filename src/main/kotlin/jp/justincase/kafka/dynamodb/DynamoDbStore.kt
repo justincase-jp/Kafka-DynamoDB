@@ -42,7 +42,7 @@ class DynamoDbStore private constructor (
     @JvmStatic
     fun keyValueStoreBuilderSupplier(settings: DynamoDbStoreSettings): KeyValueStoreBuilderSupplier =
         settings.run {
-          toClientSettings().keyValueStoreBuilderSupplier(toTableThroughputSettings(), toTableSettings())
+          toClientSettings().keyValueStoreBuilderSupplier(toTableSettings())
         }
   }
 
