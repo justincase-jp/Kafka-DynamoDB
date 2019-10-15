@@ -10,14 +10,14 @@ import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
 import jp.justincase.kafka.dynamodb.SharedReference
 import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
 import jp.justincase.kafka.dynamodb.auxiliary.createTableSynchronously
+import jp.justincase.kafka.dynamodb.test.utility.EmbeddedDynamoDb
 import jp.justincase.kafka.dynamodb.test.utility.use
 import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KeyValue
-import java.net.URI
 import java.util.*
 
 class DynamoDbStoreSpec : WordSpec({
-  val client = DynamoDbClientSettings(URI("http://localhost:8000"), "fakeKeyId" to "fakeKey").run {
+  val client = DynamoDbClientSettings(EmbeddedDynamoDb.localEndpoint, "fakeKeyId" to "fakeKey").run {
     SharedReference(::createSynchronousClient)
   }
   val uuidString = Gen.uuid().map(UUID::toString)

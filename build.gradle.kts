@@ -22,6 +22,7 @@ tasks {
 
 repositories {
   jcenter()
+  maven("https://dynamodb-local.s3-us-west-2.amazonaws.com/release")
 }
 dependencies {
   implementation(kotlin("stdlib"))
@@ -30,4 +31,5 @@ dependencies {
   implementation("software.amazon.awssdk", "dynamodb", "2.9.20")
 
   testImplementation("io.kotlintest", "kotlintest-runner-junit5", "3.4.2")
+  testImplementation("com.amazonaws", "DynamoDBLocal", "1.11.477")
 }

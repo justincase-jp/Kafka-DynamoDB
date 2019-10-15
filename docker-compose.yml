@@ -1,8 +1,0 @@
-version: '3.7'
-
-services:
-  dynamoDb:
-    image: amazon/dynamodb-local:1.11.477
-    command: -jar DynamoDBLocal.jar -sharedDb
-    ports:
-      - 8000:8000
