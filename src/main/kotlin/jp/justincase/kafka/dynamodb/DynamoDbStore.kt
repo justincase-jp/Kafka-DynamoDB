@@ -44,11 +44,12 @@ class DynamoDbStore private constructor (
     fun keyValueStoreBuilderSupplier(
         endpointOverride: URI,
         table: String,
+        credentialOverride: Pair<String, String>? = null,
         hashKeyColumn: String = "key",
         sortKeyColumn: String = "type",
         valueColumn: String = "value"
     ): KeyValueStoreBuilderSupplier =
-        DynamoDbClientSettings(endpointOverride).keyValueStoreBuilderSupplier(DynamoDbTableSettings(
+        DynamoDbClientSettings(endpointOverride, credentialOverride).keyValueStoreBuilderSupplier(DynamoDbTableSettings(
             table, hashKeyColumn, sortKeyColumn, valueColumn
         ))
   }

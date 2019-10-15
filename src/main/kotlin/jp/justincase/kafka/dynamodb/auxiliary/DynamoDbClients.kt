@@ -6,6 +6,7 @@ import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier
 import org.apache.kafka.streams.state.KeyValueStore
 import org.apache.kafka.streams.state.Stores
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.regions.Region.US_WEST_2
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
@@ -32,6 +33,13 @@ fun DynamoDbClientSettings.createSynchronousClient(): DynamoDbClient =
               ?.destructured
               ?.let { (region) -> region(Region.of(region)) }
               ?: region(US_WEST_2)
+
+          // Configure explicit AWS credential
+          credentialOverride?.let { (keyId, key) ->
+            credentialsProvider {
+              AwsBasicCredentials.create(keyId, key)
+            }
+          }
         }
         .build()
 

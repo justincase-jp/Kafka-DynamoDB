@@ -7,6 +7,7 @@ import java.net.URI
 
 interface DynamoDbStoreSettings {
   val endpointOverride: URI
+  val credentialOverride: Pair<String, String>?
   val table: String
   val hashKeyColumn: String
   val sortKeyColumn: String
@@ -15,6 +16,7 @@ interface DynamoDbStoreSettings {
   data class Value(
       override val endpointOverride: URI,
       override val table: String,
+      override val credentialOverride: Pair<String, String>? = null,
       override val hashKeyColumn: String = "key",
       override val sortKeyColumn: String = "type",
       override val valueColumn: String = "value"
@@ -22,14 +24,15 @@ interface DynamoDbStoreSettings {
 }
 
 fun DynamoDbStoreSettings.toClientSettings() =
-    DynamoDbClientSettings(endpointOverride)
+    DynamoDbClientSettings(endpointOverride, credentialOverride)
 
 fun DynamoDbStoreSettings.toTableSettings() =
     DynamoDbTableSettings(table, hashKeyColumn, sortKeyColumn, valueColumn)
 
 
 data class DynamoDbClientSettings(
-    val endpointOverride: URI
+    val endpointOverride: URI,
+    val credentialOverride: Pair<String, String>?
 )
 
 data class DynamoDbTableSettings(

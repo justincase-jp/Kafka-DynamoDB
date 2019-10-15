@@ -13,7 +13,9 @@ import java.net.URI
 import java.util.*
 
 class DynamoDbStoreSpec : WordSpec({
-  val client = SharedReference(DynamoDbClientSettings(URI("http://localhost:8000"))::createSynchronousClient)
+  val client = DynamoDbClientSettings(URI("http://localhost:8000"), "fakeKeyId" to "fakeKey").run {
+    SharedReference(::createSynchronousClient)
+  }
   val uuidString = Gen.uuid().map(UUID::toString)
 
   val stores = Gen.bind(uuidString, uuidString, uuidString, uuidString, uuidString) { t, n, h, s, v ->
