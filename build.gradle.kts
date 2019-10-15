@@ -27,7 +27,7 @@ dependencies {
   implementation(kotlin("stdlib"))
 
   api("org.apache.kafka", "kafka-streams", "2.3.0")
-  implementation("software.amazon.awssdk", "dynamodb", "2.9.17")
+  implementation("software.amazon.awssdk", "dynamodb", "2.9.20")
 
   testImplementation("io.kotlintest", "kotlintest-runner-junit5", "3.4.2")
 }
