@@ -4,9 +4,13 @@ import io.kotlintest.properties.Gen
 import io.kotlintest.properties.assertAll
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.WordSpec
-import jp.justincase.kafka.dynamodb.*
+import jp.justincase.kafka.dynamodb.DynamoDbClientSettings
+import jp.justincase.kafka.dynamodb.DynamoDbStore
+import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
+import jp.justincase.kafka.dynamodb.SharedReference
 import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
 import jp.justincase.kafka.dynamodb.auxiliary.createTableSynchronously
+import jp.justincase.kafka.dynamodb.test.utility.use
 import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KeyValue
 import java.net.URI
@@ -31,68 +35,68 @@ class DynamoDbStoreSpec : WordSpec({
 
   "`DynamoDbKeyValueByteStore`" should {
     "be consistent on `put` and `get`" {
-      val store = stores.next()
+      stores.next().use { store ->
+        assertAll(100, bytesGen, byteArrayGen) { key, value ->
+          store.put(key, value)
 
-      assertAll(100, bytesGen, byteArrayGen) { key, value ->
-        store.put(key, value)
-
-        store.get(key) shouldBe value
+          store.get(key) shouldBe value
+        }
       }
     }
     "be consistent on `putAll` and `get`" {
-      val store = stores.next()
+      stores.next().use { store ->
+        assertAll(
+            100,
+            Gen.list(Gen.bind(bytesGen, byteArrayGen, ::KeyValue))
+        ) { entries ->
+          store.putAll(entries)
 
-      assertAll(
-          100,
-          Gen.list(Gen.bind(bytesGen, byteArrayGen, ::KeyValue))
-      ) { entries ->
-        store.putAll(entries)
-
-        entries
-            .associateBy({ it.key }) { it.value }
-            .forEach { (k, v) ->
-              store.get(k) shouldBe v
-            }
+          entries
+              .associateBy({ it.key }) { it.value }
+              .forEach { (k, v) ->
+                store.get(k) shouldBe v
+              }
+        }
       }
     }
     "be consistent on `putIfAbsent` and `get`" {
-      val store = stores.next()
-
-      assertAll(100, bytesGen, byteArrayGen, byteArrayGen) { key, value1, value2 ->
-        val expected = when (val v = store.get(key)) {
-          null -> {
-            store.putIfAbsent(key, value1)
-            value1
+      stores.next().use { store ->
+        assertAll(100, bytesGen, byteArrayGen, byteArrayGen) { key, value1, value2 ->
+          val expected = when (val v = store.get(key)) {
+            null -> {
+              store.putIfAbsent(key, value1)
+              value1
+            }
+            else -> v
           }
-          else -> v
-        }
-        store.putIfAbsent(key, value2)
+          store.putIfAbsent(key, value2)
 
-        store.get(key) shouldBe expected
+          store.get(key) shouldBe expected
+        }
       }
     }
     "be consistent on `delete` and `put`" {
-      val store = stores.next()
+      stores.next().use { store ->
+        assertAll(100, bytesGen, byteArrayGen) { key, value ->
+          store.put(key, value)
 
-      assertAll(100, bytesGen, byteArrayGen) { key, value ->
-        store.put(key, value)
-
-        store.delete(key) shouldBe value
-        store.delete(key) shouldBe null
+          store.delete(key) shouldBe value
+          store.delete(key) shouldBe null
+        }
       }
     }
     "return `null` on clean `get`" {
-      val store = stores.next()
-
-      assertAll(100, bytesGen) { key ->
-        store.get(key) shouldBe null
+      stores.next().use { store ->
+        assertAll(100, bytesGen) { key ->
+          store.get(key) shouldBe null
+        }
       }
     }
     "return `null` on clean `delete`" {
-      val store = stores.next()
-
-      assertAll(100, bytesGen) { key ->
-        store.delete(key) shouldBe null
+      stores.next().use { store ->
+        assertAll(100, bytesGen) { key ->
+          store.delete(key) shouldBe null
+        }
       }
     }
   }
