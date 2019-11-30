@@ -4,11 +4,9 @@ import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KeyValue
 import software.amazon.awssdk.core.SdkBytes
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.model.*
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder
-import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException
-import software.amazon.awssdk.services.dynamodb.model.PutRequest
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue.ALL_OLD
-import software.amazon.awssdk.services.dynamodb.model.WriteRequest
 import java.net.URI
 
 private fun s(string: String) = builder().s(string).build()
@@ -99,44 +97,71 @@ class DynamoDbStore private constructor (
             }
           }
 
+
   override
-  tailrec fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
-      when (val v = get(key)) {
-        null -> when (try {
-          delegate.putItem {
+  fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
+      key.encode().let { encodedKey ->
+        putIfAbsent(createGetRequest(encodedKey), createPutIfAbsentRequest(encodedKey, value))
+      }
+
+  private
+  fun createPutIfAbsentRequest(encodedKey: ByteArray, value: ByteArray): PutItemRequest =
+      PutItemRequest
+          .builder()
+          .let {
             it.tableName(table)
             it.item(mapOf(
-                hashKeyColumn to b(key.encode()),
+                hashKeyColumn to b(encodedKey),
                 sortKeyColumn to s(storeName),
                 valueColumn to bOrNul(value)
             ))
             it.conditionExpression("attribute_not_exists(#s)")
             it.expressionAttributeNames(mapOf("#s" to sortKeyColumn))
+            it.build()
           }
+
+  private
+  tailrec fun putIfAbsent(getRequest: GetItemRequest, putIfAbsentRequest: PutItemRequest): ByteArray? =
+      when (val v = get(getRequest)) {
+        null -> when (try {
+          delegate.putItem(putIfAbsentRequest)
           null
         } catch (_: ConditionalCheckFailedException) {
         }) {
           // tailrec does not work with try-catch directly
           null -> null
-          else -> putIfAbsent(key, value)
+          else -> putIfAbsent(getRequest, putIfAbsentRequest)
         }
         else -> v
       }
 
+
   override
   fun get(key: Bytes): ByteArray? =
-      delegate
-          .getItem {
+      get(createGetRequest(key.encode()))
+
+  private
+  fun createGetRequest(encodedKey: ByteArray): GetItemRequest =
+      GetItemRequest
+          .builder()
+          .let {
             it.tableName(table)
             it.key(mapOf(
-                hashKeyColumn to b(key.encode()),
+                hashKeyColumn to b(encodedKey),
                 sortKeyColumn to s(storeName)
             ))
+            it.build()
           }
+
+  private
+  fun get(getRequest: GetItemRequest): ByteArray? =
+      delegate
+          .getItem(getRequest)
           .item()[valueColumn]
           ?.let {
             it.b()?.asByteArray() ?: EMPTY_BYTE_ARRAY
           }
+
 
   override
   fun delete(key: Bytes): ByteArray? =
