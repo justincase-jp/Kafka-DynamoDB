@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.dynamodb.model.*
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder
 import software.amazon.awssdk.services.dynamodb.model.ReturnValue.ALL_OLD
 import java.net.URI
+import kotlin.LazyThreadSafetyMode.PUBLICATION
 
 private fun s(string: String) = builder().s(string).build()
 private fun b(bytes: ByteArray) = builder().b(SdkBytes.fromByteArray(bytes)).build()
@@ -101,7 +102,10 @@ class DynamoDbStore private constructor (
   override
   fun putIfAbsent(key: Bytes, value: ByteArray): ByteArray? =
       key.encode().let { encodedKey ->
-        putIfAbsent(createGetRequest(encodedKey), createPutIfAbsentRequest(encodedKey, value))
+        putIfAbsent(
+            createPutIfAbsentRequest(encodedKey, value),
+            lazy(PUBLICATION) { createGetRequest(encodedKey) }
+        )
       }
 
   private
@@ -121,18 +125,18 @@ class DynamoDbStore private constructor (
           }
 
   private
-  tailrec fun putIfAbsent(getRequest: GetItemRequest, putIfAbsentRequest: PutItemRequest): ByteArray? =
-      when (val v = get(getRequest)) {
-        null -> when (try {
-          delegate.putItem(putIfAbsentRequest)
-          null
-        } catch (_: ConditionalCheckFailedException) {
-        }) {
-          // tailrec does not work with try-catch directly
-          null -> null
-          else -> putIfAbsent(getRequest, putIfAbsentRequest)
+  tailrec fun putIfAbsent(putIfAbsentRequest: PutItemRequest, getRequest: Lazy<GetItemRequest>): ByteArray? =
+      when (try {
+        delegate.putItem(putIfAbsentRequest)
+        null
+      } catch (_: ConditionalCheckFailedException) {
+      }) {
+        // tailrec does not work with try-catch directly
+        null -> null
+        else -> when (val v = get(getRequest.value)) {
+          null -> putIfAbsent(putIfAbsentRequest, getRequest)
+          else -> v
         }
-        else -> v
       }
 
 
