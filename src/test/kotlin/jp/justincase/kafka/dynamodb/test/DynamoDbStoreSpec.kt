@@ -5,11 +5,11 @@ import io.kotlintest.properties.assertAll
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.WordSpec
 import jp.justincase.kafka.dynamodb.DynamoDbClientSettings
-import jp.justincase.kafka.dynamodb.DynamoDbStore
 import jp.justincase.kafka.dynamodb.DynamoDbTableSettings
 import jp.justincase.kafka.dynamodb.SharedReference
 import jp.justincase.kafka.dynamodb.auxiliary.createSynchronousClient
 import jp.justincase.kafka.dynamodb.auxiliary.createTableSynchronously
+import jp.justincase.kafka.dynamodb.hash.HashingDynamoDbStore
 import jp.justincase.kafka.dynamodb.test.utility.EmbeddedDynamoDb
 import jp.justincase.kafka.dynamodb.test.utility.use
 import org.apache.kafka.common.utils.Bytes
@@ -26,10 +26,10 @@ class DynamoDbStoreSpec : WordSpec({
     val tableSettings = DynamoDbTableSettings(t, h, s, v)
 
     client.createTableSynchronously(tableSettings)
-    DynamoDbStore.open(client, n, tableSettings)
+    HashingDynamoDbStore.open(client, n, tableSettings)
   }
 
-  val byteArrayGen = Gen.list(Gen.byte()).map { it.toByteArray() }
+  val byteArrayGen = Gen.list(Gen.byte(), 4096).map { it.toByteArray() }
   val bytesGen = byteArrayGen.map(::Bytes)
 
 

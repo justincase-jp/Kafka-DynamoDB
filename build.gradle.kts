@@ -29,6 +29,13 @@ dependencies {
 
   api("org.apache.kafka", "kafka-streams", "2.3.0")
   implementation("software.amazon.awssdk", "dynamodb", "2.9.20")
+  implementation("com.google.guava:guava:28.2-jre") {
+    exclude("com.google.code.findbugs", "jsr305")
+    exclude("org.checkerframework", "checker-qual")
+    exclude("com.google.errorprone", "error_prone_annotations")
+    exclude("com.google.j2objc", "j2objc-annotations")
+    exclude("org.codehaus.mojo", "animal-sniffer-annotations")
+  }
 
   testImplementation("io.kotlintest", "kotlintest-runner-junit5", "3.4.2")
   testImplementation("com.amazonaws", "DynamoDBLocal", "1.11.477")

@@ -39,6 +39,10 @@ class DynamoDbStore private constructor (
           )
         }
 
+    @Deprecated(
+        message = "Use the extension version instead",
+        replaceWith = ReplaceWith("DynamoDbStoreSettings.keyValueStoreBuilderSupplier")
+    )
     @JvmStatic
     fun keyValueStoreBuilderSupplier(
         endpointOverride: URI,

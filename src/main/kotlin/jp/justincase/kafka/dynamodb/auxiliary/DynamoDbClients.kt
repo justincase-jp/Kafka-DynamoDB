@@ -2,6 +2,7 @@
 package jp.justincase.kafka.dynamodb.auxiliary
 
 import jp.justincase.kafka.dynamodb.*
+import jp.justincase.kafka.dynamodb.hash.HashingDynamoDbStore
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier
 import org.apache.kafka.streams.state.KeyValueStore
@@ -86,7 +87,7 @@ fun SharedReference<DynamoDbClient>.keyValueStoreBuilderSupplier(
                     object : KeyValueBytesStoreSupplier {
                       override fun get() = LateInitializedKeyValueStore(true, name) {
                         createTable.value
-                        DynamoDbStore.open(this@keyValueStoreBuilderSupplier, name, tableSettings)
+                        HashingDynamoDbStore.open(this@keyValueStoreBuilderSupplier, name, tableSettings)
                       }
                       override fun name() = name
                       override fun metricsScope() = "dynamodb-state"
