@@ -57,3 +57,16 @@ val store = processorContext.getStateStore("storeName")
 In which `SharedReference` is a reference counting wrapper that creates and destroys `AutoCloseable` instances automatically,
 by increasing counts for calls to `fun open(): Pair<Lazy<Unit>, T>`,
 and decreasing counts for unwrapping the returned `Lazy<Unit>`.
+
+## Installation
+Gradle Kotlin DSL
+
+```kotlin
+repositories {
+  jcenter()
+  maven("https://jitpack.io")
+}
+dependencies {
+  implementation("io.github.justincase-jp", "kafka-dynamodb", VERSION)
+}
+```
