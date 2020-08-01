@@ -44,7 +44,7 @@ val tableSettings = DynamoDbTableSettings(
 )
 val sharedClient = SharedReference(clientSettings::createSynchronousClient)
 
-val factory = sharedClient.keyValueStoreBuilderSupplier()
+val factory = sharedClient.keyValueStoreBuilderSupplier(tableSettings)
 val storeBuilder = factory("storeName", keySerde, valueSerde)
 streamsBuilder.addStateStore(storeBuilder)
 
