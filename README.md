@@ -70,3 +70,9 @@ dependencies {
   implementation("io.github.justincase-jp", "kafka-dynamodb", VERSION)
 }
 ```
+
+## Caveats
+* `range` and `all` operation are not supported.
+* Hash key columns in DynamoDB have a hard size limit of 2048 bytes.
+As a workaround to it, large keys are hashed first before passing to the actual operation.
+You may refer to `HashingDynamoDbStore` for the actual handling.
