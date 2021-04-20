@@ -21,7 +21,7 @@ tasks {
 }
 
 repositories {
-  jcenter()
+  mavenCentral()
   maven("https://dynamodb-local.s3-us-west-2.amazonaws.com/release")
 }
 dependencies {
