@@ -1,12 +1,12 @@
 plugins {
   maven
   `java-library`
-  kotlin("jvm") version "1.3.50"
+  kotlin("jvm") version "1.4.32"
 }
 
 tasks {
   named<Wrapper>("wrapper") {
-    gradleVersion = "5.6.2"
+    gradleVersion = "6.8.3"
   }
 
   arrayOf(compileKotlin, compileTestKotlin).forEach {
