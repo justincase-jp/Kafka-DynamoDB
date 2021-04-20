@@ -6,7 +6,7 @@ plugins {
 
 tasks {
   named<Wrapper>("wrapper") {
-    gradleVersion = "5.6.2"
+    gradleVersion = "6.8.3"
   }
 
   arrayOf(compileKotlin, compileTestKotlin).forEach {
